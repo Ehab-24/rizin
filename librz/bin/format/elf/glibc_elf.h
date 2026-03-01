@@ -4138,9 +4138,12 @@ ARM32 relocations:
 
 /* BPF specific declarations.  */
 
-#define R_BPF_NONE  0 /* No reloc */
-#define R_BPF_64_64 1
-#define R_BPF_64_32 10
+#define R_BPF_NONE        0 /* No reloc */
+#define R_BPF_64_64       1
+#define R_BPF_64_ABS64    2
+#define R_BPF_64_ABS32    3
+#define R_BPF_64_NODYLD32 4
+#define R_BPF_64_32       10
 
 /* Imagination Meta specific relocations. */
 

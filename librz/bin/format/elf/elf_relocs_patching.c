@@ -5,6 +5,7 @@
 
 #include "elf.h"
 #include "elf/glibc_elf.h"
+#include "rz_endian.h"
 #include "rz_types.h"
 #include "rz_types_base.h"
 #include "rz_util/rz_assert.h"
@@ -1927,6 +1928,59 @@ static void patch_reloc_x86_64(RZ_INOUT RzBuffer *buf_patched, const ut64 patch_
 	}
 }
 
+static void patch_reloc_bpf(RZ_INOUT RzBuffer *buf_patched, const ut64 patch_addr, const int rel_type, bool big_endian, const RelocFormularSymbols *fs) {
+	ut64 val = 0;
+	int word = 0, offset = 0;
+	switch (rel_type) {
+	case R_BPF_NONE: return;
+	case R_BPF_64_64:
+		word = 4;
+		offset = 4;
+		val = fs->S - fs->A;
+		break;
+	case R_BPF_64_ABS64:
+		word = 8;
+		offset = 0;
+		val = fs->S - fs->A;
+		break;
+	case R_BPF_64_ABS32:
+		word = 4;
+		offset = 0;
+		val = fs->S - fs->A;
+		break;
+	case R_BPF_64_NODYLD32:
+		word = 4;
+		offset = 0;
+		val = fs->S - fs->A;
+		break;
+	case R_BPF_64_32: {
+		word = 4;
+		offset = 0;
+		ut8 buf[8] = { 0 };
+		const st64 nread = rz_buf_read_at(buf_patched, patch_addr, buf, 8);
+		if (nread != 8) {
+			return;
+		}
+		ut32 k = rz_read_ble(buf + 4, !big_endian, 4);
+		val = fs->S;
+	} break;
+	default:
+		UNHANDL_DEF("BPF", rel_type)
+		return;
+	}
+
+	ut8 buf[8] = { 0 };
+	switch (word) {
+	case 4:
+		rz_write_ble32(buf, val, big_endian);
+		break;
+	case 8:
+		rz_write_ble64(buf, val, big_endian);
+		break;
+	}
+	rz_buf_write_at(buf_patched, patch_addr + offset, buf, word);
+}
+
 /**
  * \brief Patches the opcode at a given address depending on the relocation type.
  *
@@ -2752,6 +2806,9 @@ void Elf_(rz_bin_elf_patch_relocation)(RZ_NONNULL ELFOBJ *bin, RZ_NONNULL RzBinE
 	case EM_RISCV:
 		patch_reloc_riscv(bin->buf_patched, patch_addr, rel->type, big_endian, &formular_sym, bin->bits);
 		break;
+	case EM_BPF:
+		patch_reloc_bpf(bin->buf_patched, patch_addr, rel->type, big_endian, &formular_sym);
+		break;
 
 	case EM_M32: ARCH_MISSING("EM_M32");
 	case EM_68K: ARCH_MISSING("EM_68K");
@@ -2916,7 +2973,6 @@ void Elf_(rz_bin_elf_patch_relocation)(RZ_NONNULL ELFOBJ *bin, RZ_NONNULL RzBinE
 	case EM_LANAI_OLD: ARCH_MISSING("EM_LANAI_OLD");
 	case EM_CEVA: ARCH_MISSING("EM_CEVA");
 	case EM_CEVA_X2: ARCH_MISSING("EM_CEVA_X2");
-	case EM_BPF: ARCH_MISSING("EM_BPF");
 	case EM_GRAPHCORE_IPU: ARCH_MISSING("EM_GRAPHCORE_IPU");
 	case EM_IMG1: ARCH_MISSING("EM_IMG1");
 	case EM_NFP: ARCH_MISSING("EM_NFP");

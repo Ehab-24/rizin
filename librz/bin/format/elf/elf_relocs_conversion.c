@@ -1436,6 +1436,18 @@ static RzBinReloc *reloc_convert_avr(ELFOBJ *bin, RzBinElfReloc *rel, ut64 GOT) 
 	}
 }
 
+static RzBinReloc *reloc_convert_bpf(ELFOBJ *bin, RzBinElfReloc *rel, ut64 GOT) {
+	switch (rel->type) {
+	case R_BPF_NONE: ADD(64, 0, "R_BPF_NONE", RZ_RELOC_BASE_SYMBOL);
+	case R_BPF_64_64: ADD(64, 0, "R_BPF_64_64", RZ_RELOC_BASE_SYMBOL);
+	case R_BPF_64_ABS64: ADD(64, 0, "R_BPF_64_ABS64", RZ_RELOC_BASE_SYMBOL);
+	case R_BPF_64_ABS32: ADD(64, 0, "R_BPF_64_ABS32", RZ_RELOC_BASE_SYMBOL);
+	case R_BPF_64_NODYLD32: ADD(64, 0, "R_BPF_64_NODYLD32", RZ_RELOC_BASE_SYMBOL);
+	case R_BPF_64_32: ADD(64, 0, "R_BPF_64_32", RZ_RELOC_BASE_SYMBOL);
+	default: UNSUPP("BPF");
+	}
+}
+
 #undef UNSUPP
 #undef UNHANDL
 #undef SET
@@ -1487,6 +1499,8 @@ RZ_OWN RzBinReloc *Elf_(rz_bin_elf_convert_relocation)(RZ_NONNULL ELFOBJ *bin, R
 		return reloc_convert_nanomips(bin, rel, GOT);
 	case EM_AVR:
 		return reloc_convert_avr(bin, rel, GOT);
+	case EM_BPF:
+		return reloc_convert_bpf(bin, rel, GOT);
 	case EM_M32: ARCH_MISSING("EM_M32");
 	case EM_68K: ARCH_MISSING("EM_68K");
 	case EM_88K: ARCH_MISSING("EM_88K");
@@ -1651,7 +1665,6 @@ RZ_OWN RzBinReloc *Elf_(rz_bin_elf_convert_relocation)(RZ_NONNULL ELFOBJ *bin, R
 	case EM_LANAI_OLD: ARCH_MISSING("EM_LANAI_OLD");
 	case EM_CEVA: ARCH_MISSING("EM_CEVA");
 	case EM_CEVA_X2: ARCH_MISSING("EM_CEVA_X2");
-	case EM_BPF: ARCH_MISSING("EM_BPF");
 	case EM_GRAPHCORE_IPU: ARCH_MISSING("EM_GRAPHCORE_IPU");
 	case EM_NFP: ARCH_MISSING("EM_NFP");
 	case EM_VE: ARCH_MISSING("EM_VE");
